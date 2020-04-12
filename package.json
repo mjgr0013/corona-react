@@ -1,6 +1,6 @@
 {
-  "name": "film-app",
-  "homepage": "http://mjgr0013.github.io/film-app",
+  "name": "corona-react",
+  "homepage": "http://mjgr0013.github.io/corona-react",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
