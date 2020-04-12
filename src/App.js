@@ -10,14 +10,16 @@ import InputLabel from "@material-ui/core/InputLabel";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import TextField from "@material-ui/core/TextField";
+import Typography from "@material-ui/core/Typography";
 
 class App extends Component {
   chartRef = React.createRef();
 
   state = {
     countries: [],
-    country: 'Spain',
+    country: null,
     slice: 30,
+    completeData: null,
     data: null,
     chart: null,
     visualization: 'increment',
@@ -119,22 +121,23 @@ class App extends Component {
   }
 
   fetchData() {
-    /*fetch('https://pomber.github.io/covid19/timeseries.json')
+    fetch('https://pomber.github.io/covid19/timeseries.json')
         .then(response => {
           return response.json();
         })
         .then(myJson => {
           this.setState({
-            data: this.buildFormattedData(myJson['Spain'])
-          }, () => {
-            this.updateGraph()
+            completeData: myJson,
+            data: this.buildFormattedData(myJson['Spain']),
+            countries: Object.keys(myJson)
           })
-        });*/
+        });
 
-    this.setState({
+    /*this.setState({
+      completeData: timeseries,
       data: this.buildFormattedData(timeseries[this.state.country]),
       countries: Object.keys(timeseries)
-    })
+    })*/
   }
 
   fetchDataByVisualization(data, value, visualization) {
@@ -167,15 +170,21 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.fetchData()
+    fetch('https://ipapi.co/json/')
+        .then(response => {
+          return response.json();
+        })
+        .then(myJson => {
+          this.state.country = myJson.country_name;
+          this.fetchData()
+        })
   }
 
   changeCountry = e => {
     console.log("cambio country")
     this.setState({
-      country: e.target.value
-    }, () => {
-      //this.fetchData()
+      country: e.target.value,
+      data: this.buildFormattedData(this.state.completeData[e.target.value]),
     })
   }
 
@@ -215,39 +224,37 @@ class App extends Component {
 
   render() {
     return (
-        <Grid container spacing={2}>
-          <Grid item xs={4}>
+        <div>
+          <Grid container spacing={2} justify={"space-around"} alignItems={"center"} mb={2}>
             <FormControlLabel
                 control={
                   <Checkbox
                       checked={this.state.deathsDataset}
-                      name="checkedB"
+                      name="deathsDataset"
                       color="primary"
                       onChange={this.switchDeathsDataset}
                   />
                 }
                 label="Deaths"
             />
-          </Grid>
-          <Grid item xs={4}>
+
             <FormControlLabel
                 control={
                   <Checkbox
                       checked={this.state.recoveredDataset}
-                      name="checkedB"
+                      name="recoveredDataset"
                       color="primary"
                       onChange={this.switchRecoveredDataset}
                   />
                 }
                 label="Recovered"
             />
-          </Grid>
-          <Grid item xs={4}>
+
             <FormControlLabel
                 control={
                   <Checkbox
                       checked={this.state.confirmedDataset}
-                      name="checkedB"
+                      name="confirmedDataset"
                       color="primary"
                       onChange={this.switchConfirmedDataset}
                   />
@@ -255,14 +262,14 @@ class App extends Component {
                 label="Confirmed"
             />
           </Grid>
-          <Grid item xs={6}>
+          <Grid container spacing={2} justify={"space-around"} alignItems={"center"}>
             <FormControl
-                fullWidth
+                size={"medium"}
             >
-              <InputLabel id="demo-simple-select-label">Visualization</InputLabel>
+              <InputLabel id="select-country">Country</InputLabel>
               <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
+                  labelId="select-country"
+                  id="select-country"
                   value={this.state.country}
                   onChange={this.changeCountry}
               >
@@ -271,15 +278,14 @@ class App extends Component {
                 })}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={6}>
+
             <FormControl
-                fullWidth
+                size={"medium"}
             >
-              <InputLabel id="demo-simple-select-label">Visualization</InputLabel>
+              <InputLabel id="select-visualization">Visualization</InputLabel>
               <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
+                  labelId="select-visualization"
+                  id="select-visualization"
                   value={this.state.visualization}
                   onChange={this.handleVisualizationChange}
               >
@@ -288,17 +294,16 @@ class App extends Component {
                 <MenuItem key={2} value={"increment"}>Increment</MenuItem>
               </Select>
             </FormControl>
+
+            <TextField size={"medium"} id="standard-required" label="Latest N days" value={this.state.slice}
+                       onChange={this.changeDays}/>
           </Grid>
 
-          <Grid item xs={8}>
-            <TextField fullWidth id="standard-required" label="Latest N days" value={this.state.slice} onChange={this.changeDays} />
-          </Grid>
-
-          <Grid item xs={12}>
+          <Grid container spacing={2} justify={"space-around"} alignItems={"center"}>
             <canvas id="canvas" ref={this.chartRef}>
             </canvas>
           </Grid>
-        </Grid>
+        </div>
     )
   }
 }
