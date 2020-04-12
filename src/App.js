@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import Chart from "chart.js";
 import {pluck} from "underscore";
 import timeseries from "./data/timeseries";
 import Grid from "@material-ui/core/Grid";
@@ -11,113 +10,21 @@ import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
+import HighchartsLine from "./Components/Graphs/HighchartsLine";
+import Table from "./Components/Tables/Table"
 
 class App extends Component {
-  chartRef = React.createRef();
-
   state = {
     countries: [],
-    country: null,
+    country: 'Spain',
     slice: 30,
     completeData: null,
     data: null,
-    chart: null,
     visualization: 'increment',
     deathsDataset: true,
     confirmedDataset: false,
-    recoveredDataset: false
-  }
-
-  updateGraph() {
-    let {slice, data, deathsDataset, confirmedDataset, recoveredDataset, visualization} = this.state;
-    let datasets = [];
-
-    let labels = pluck(data, 'date').slice(-slice)
-
-    if (confirmedDataset) {
-      let confirmed = this.fetchDataByVisualization(this.state.data, 'confirmed', visualization).slice(-slice)
-
-      datasets.push({
-        label: 'Confirmed',
-        borderColor: 'rgba(234, 237, 54)',
-        backgroundColor: 'rgba(234, 237, 54)',
-        data: confirmed,
-        fill: false,
-      })
-    }
-
-    if (deathsDataset) {
-      let deaths = this.fetchDataByVisualization(this.state.data, 'deaths', visualization).slice(-slice)
-
-      datasets.push({
-        label: 'Deaths',
-        borderColor: 'rgb(237,106,54)',
-        backgroundColor: 'rgb(237,106,54)',
-        data: deaths,
-        fill: false,
-      })
-    }
-
-    if (recoveredDataset) {
-      let recovered = this.fetchDataByVisualization(this.state.data, 'recovered', visualization).slice(-slice)
-
-      datasets.push({
-        label: 'Recovered',
-        borderColor: 'rgb(72,237,54)',
-        backgroundColor: 'rgb(72,237,54)',
-        data: recovered,
-        fill: false,
-      })
-    }
-
-    var config = {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: datasets
-      },
-      options: {
-        responsive: true,
-        title: {
-          display: true,
-          text: 'Daily general report COVID-19'
-        },
-        tooltips: {
-          mode: 'index',
-          intersect: false,
-        },
-        hover: {
-          mode: 'nearest',
-          intersect: true
-        },
-        scales: {
-          xAxes: [{
-            display: true,
-            scaleLabel: {
-              display: true,
-              labelString: 'Date'
-            }
-          }],
-          yAxes: [{
-            display: true,
-            scaleLabel: {
-              display: true,
-              labelString: 'Value'
-            }
-          }]
-        }
-      }
-    };
-
-    const myChartRef = this.chartRef.current.getContext("2d");
-
-    if (this.state.chart) {
-      this.state.chart.destroy()
-    }
-
-    let chart = new Chart(myChartRef, config);
-
-    this.state.chart = chart
+    recoveredDataset: false,
+    dataLoaded: false,
   }
 
   fetchData() {
@@ -128,15 +35,17 @@ class App extends Component {
         .then(myJson => {
           this.setState({
             completeData: myJson,
-            data: this.buildFormattedData(myJson['Spain']),
-            countries: Object.keys(myJson)
+            data: this.buildFormattedData(myJson[this.state.country]),
+            countries: Object.keys(myJson),
+            dataLoaded: true
           })
         });
 
     /*this.setState({
       completeData: timeseries,
       data: this.buildFormattedData(timeseries[this.state.country]),
-      countries: Object.keys(timeseries)
+      countries: Object.keys(timeseries),
+      dataLoaded: true
     })*/
   }
 
@@ -175,13 +84,15 @@ class App extends Component {
           return response.json();
         })
         .then(myJson => {
-          this.state.country = myJson.country_name;
-          this.fetchData()
+          this.setState({
+            country: myJson.country_name
+          }, () => {
+            this.fetchData()
+          })
         })
   }
 
   changeCountry = e => {
-    console.log("cambio country")
     this.setState({
       country: e.target.value,
       data: this.buildFormattedData(this.state.completeData[e.target.value]),
@@ -218,8 +129,58 @@ class App extends Component {
     })
   }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {
-    this.updateGraph()
+  getDataForHighCharts() {
+    let datasets = [];
+    let {data, slice, visualization, deathsDataset, recoveredDataset, confirmedDataset} = this.state
+    let labels = pluck(data, 'date').slice(-slice)
+
+    if (deathsDataset) {
+      let deaths = this.fetchDataByVisualization(data, 'deaths', visualization).slice(-slice);
+
+      datasets.push({
+        name: 'deaths',
+        data: deaths
+      })
+    }
+
+    if (confirmedDataset) {
+      let confirmed = this.fetchDataByVisualization(data, 'confirmed', visualization).slice(-slice);
+
+      datasets.push({
+        name: 'confirmed',
+        data: confirmed
+      })
+    }
+
+    if (recoveredDataset) {
+      let recovered = this.fetchDataByVisualization(data, 'recovered', visualization).slice(-slice);
+
+      datasets.push({
+        name: 'recovered',
+        data: recovered
+      })
+    }
+
+    return {
+      labels: labels,
+      dataset: datasets
+    }
+  }
+
+  getDataForTable() {
+    let {data, slice, visualization, deathsDataset, recoveredDataset, confirmedDataset} = this.state
+
+    let labels = pluck(data, 'date').slice(-slice)
+    let deaths = deathsDataset ? this.fetchDataByVisualization(data, 'deaths', visualization).slice(-slice) : []
+    let confirmed = confirmedDataset ? this.fetchDataByVisualization(data, 'confirmed', visualization).slice(-slice) : []
+    let recovered = recoveredDataset ? this.fetchDataByVisualization(data, 'recovered', visualization).slice(-slice) : []
+
+    return {
+      deaths: deaths,
+      confirmed: confirmed,
+      recovered: recovered,
+      labels: labels
+    }
   }
 
   render() {
@@ -299,10 +260,9 @@ class App extends Component {
                        onChange={this.changeDays}/>
           </Grid>
 
-          <Grid container spacing={2} justify={"space-around"} alignItems={"center"}>
-            <canvas id="canvas" ref={this.chartRef}>
-            </canvas>
-          </Grid>
+          {this.state.dataLoaded ? <HighchartsLine title={"COVID-19 Report"} {...this.getDataForHighCharts()} /> : null}
+          {this.state.dataLoaded ? <Table {...this.getDataForTable()} /> : null}
+
         </div>
     )
   }
