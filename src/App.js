@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import countries from "./data/iso_countries";
 import Chart from "chart.js";
 import {pluck} from "underscore";
 import timeseries from "./data/timeseries";
@@ -11,13 +10,13 @@ import InputLabel from "@material-ui/core/InputLabel";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import TextField from "@material-ui/core/TextField";
-import Button from "@material-ui/core/Button";
 
 class App extends Component {
   chartRef = React.createRef();
 
   state = {
-    country: 'ESP',
+    countries: [],
+    country: 'Spain',
     slice: 30,
     data: null,
     chart: null,
@@ -116,13 +115,11 @@ class App extends Component {
 
     let chart = new Chart(myChartRef, config);
 
-    this.setState({
-      chart: chart
-    })
+    this.state.chart = chart
   }
 
   fetchData() {
-    fetch('https://pomber.github.io/covid19/timeseries.json')
+    /*fetch('https://pomber.github.io/covid19/timeseries.json')
         .then(response => {
           return response.json();
         })
@@ -132,13 +129,12 @@ class App extends Component {
           }, () => {
             this.updateGraph()
           })
-        });
+        });*/
 
-    /*this.setState({
-      data: this.buildFormattedData(timeseries['Spain'])
-    }, () => {
-      this.updateGraph()
-    })*/
+    this.setState({
+      data: this.buildFormattedData(timeseries[this.state.country]),
+      countries: Object.keys(timeseries)
+    })
   }
 
   fetchDataByVisualization(data, value, visualization) {
@@ -192,33 +188,29 @@ class App extends Component {
   switchDeathsDataset = e => {
     this.setState({
       deathsDataset: e.target.checked
-    }, () => {
-      this.updateGraph()
     })
   }
 
   switchConfirmedDataset = e => {
     this.setState({
       confirmedDataset: e.target.checked
-    }, () => {
-      this.updateGraph()
     })
   }
 
   switchRecoveredDataset = e => {
     this.setState({
       recoveredDataset: e.target.checked
-    }, () => {
-      this.updateGraph()
     })
   }
 
   handleVisualizationChange = e => {
     this.setState({
       visualization: e.target.value
-    }, () => {
-      this.updateGraph()
     })
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    this.updateGraph()
   }
 
   render() {
@@ -274,8 +266,8 @@ class App extends Component {
                   value={this.state.country}
                   onChange={this.changeCountry}
               >
-                {countries.map(e => {
-                  return <MenuItem key={e['country-code']} value={e["alpha-3"]}>{e.name}</MenuItem>
+                {this.state.countries.map(e => {
+                  return <MenuItem key={e} value={e}>{e}</MenuItem>
                 })}
               </Select>
             </FormControl>
@@ -300,13 +292,6 @@ class App extends Component {
 
           <Grid item xs={8}>
             <TextField fullWidth id="standard-required" label="Latest N days" value={this.state.slice} onChange={this.changeDays} />
-          </Grid>
-          <Grid item xs={4}>
-            <Button fullWidth variant="contained" color="primary" onClick={e => {
-              this.updateGraph()
-            }}>
-              Update
-            </Button>
           </Grid>
 
           <Grid item xs={12}>
